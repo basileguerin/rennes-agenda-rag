@@ -1,0 +1,14 @@
+langchain==0.1.20
+langchain-community==0.0.38
+langchain-mistralai==0.0.5
+mistralai==0.1.8
+faiss-cpu==1.8.0
+fastapi==0.111.0
+uvicorn==0.29.0
+pandas==2.2.2
+numpy==1.26.4
+requests==2.32.2
+python-dotenv==1.0.1
+ragas==0.1.9
+pytest==8.2.0
+pytest-cov==5.0.0

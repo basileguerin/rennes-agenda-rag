@@ -1,0 +1,32 @@
+# Environnement virtuel
+.venv/
+
+# Variables d'environnement
+.env
+
+# Index FAISS sérialisé (reconstruit à la demande)
+data/faiss_index/
+
+# Données brutes et traitées (trop lourdes pour git)
+data/raw/
+data/processed/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Instructions Claude
+CLAUDE.md
