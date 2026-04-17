@@ -1,73 +1,83 @@
 """
 Construction de l'index FAISS à partir des événements préprocessés.
 
-Charge data/processed/events_clean.csv, génère un embedding par événement
-via l'API Mistral (mistral-embed), puis construit et sérialise un index FAISS.
+Découpe les descriptions en chunks sémantiques, génère un embedding par chunk
+via l'API Mistral (mistral-embed), et construit un index FAISS via LangChain.
 
 Prérequis : avoir exécuté fetch_events.py au préalable.
-Résultat :
-  - data/faiss_index/events.index   — index FAISS sérialisé
-  - data/faiss_index/events_mapping.csv — correspondance position → uid/corpus
+Résultat : data/faiss_index/ — index LangChain FAISS (index.faiss + index.pkl)
 """
 
 import os
 import time
-import faiss
-import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.schema import Document
+from langchain_community.vectorstores import FAISS
 from langchain_mistralai import MistralAIEmbeddings
 
 load_dotenv()
 
 PROCESSED_PATH = "data/processed/events_clean.csv"
-INDEX_PATH = "data/faiss_index/events.index"
-MAPPING_PATH = "data/faiss_index/events_mapping.csv"
+INDEX_DIR = "data/faiss_index"
 BATCH_SIZE = 50  # limite conservative pour éviter les erreurs 429
 
 
-def load_embeddings_model() -> MistralAIEmbeddings:
-    """Initialise le modèle d'embedding Mistral depuis la variable d'environnement."""
-    return MistralAIEmbeddings(
-        model="mistral-embed",
-        mistral_api_key=os.getenv("MISTRAL_API_KEY"),
-    )
+def build_documents(df: pd.DataFrame) -> list[Document]:
+    """Découpe les descriptions en chunks et crée les Documents LangChain."""
+    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    documents = []
+    for _, row in df.iterrows():
+        chunks = splitter.split_text(row["longdescription_fr"])
+        metadata = {
+            "uid": row["uid"],
+            "title": row["title_fr"],
+            "conditions": row["conditions_fr"],
+            "date_start": row["firstdate_begin"],
+            "date_end": row["lastdate_end"],
+            "location": f"{row['location_name']}, {row['location_address']}",
+            "url": row["canonicalurl"],
+        }
+        for chunk in chunks:
+            documents.append(Document(page_content=chunk, metadata=metadata))
+    return documents
 
 
-def generate_embeddings(texts: list[str], model: MistralAIEmbeddings) -> list[list[float]]:
-    """Génère les embeddings par batch avec pause pour respecter le rate limiting."""
-    all_vectors = []
-    for i in range(0, len(texts), BATCH_SIZE):
-        batch = texts[i:i + BATCH_SIZE]
-        all_vectors.extend(model.embed_documents(batch))
-        print(f"{len(all_vectors)}/{len(texts)}", end="\r")
+def build_faiss_store(documents: list[Document], embed_model: MistralAIEmbeddings) -> FAISS:
+    """Construit l'index FAISS par batch pour respecter le rate limiting."""
+    faiss_store = None
+    for i in range(0, len(documents), BATCH_SIZE):
+        batch = documents[i:i + BATCH_SIZE]
+        if faiss_store is None:
+            faiss_store = FAISS.from_documents(batch, embed_model)
+        else:
+            faiss_store.add_documents(batch)
+        print(f"{min(i + BATCH_SIZE, len(documents))}/{len(documents)}", end="\r")
         time.sleep(1)
     print()
-    return all_vectors
-
-
-def build_faiss_index(vectors: list[list[float]]) -> faiss.IndexFlatL2:
-    """Construit un index FAISS à partir des vecteurs."""
-    vectors_np = np.array(vectors, dtype=np.float32)  # FAISS attend du float32
-    index = faiss.IndexFlatL2(vectors_np.shape[1])
-    index.add(vectors_np)
-    return index
+    return faiss_store
 
 
 def main():
     df = pd.read_csv(PROCESSED_PATH)
+    df = df.dropna(subset=["longdescription_fr"])
     print(f"{len(df)} événements chargés")
 
-    model = load_embeddings_model()
-    vectors = generate_embeddings(df["corpus"].tolist(), model)
+    documents = build_documents(df)
+    print(f"{len(documents)} chunks créés")
 
-    index = build_faiss_index(vectors)
-    print(f"Index FAISS : {index.ntotal} vecteurs de dimension {index.d}")
+    embed_model = MistralAIEmbeddings(
+        model="mistral-embed",
+        mistral_api_key=os.getenv("MISTRAL_API_KEY"),
+    )
 
-    os.makedirs("data/faiss_index", exist_ok=True)
-    faiss.write_index(index, INDEX_PATH)
-    df[["uid", "corpus"]].to_csv(MAPPING_PATH, index=True)
-    print(f"Index et mapping sauvegardés dans data/faiss_index/")
+    faiss_store = build_faiss_store(documents, embed_model)
+    print(f"Index FAISS : {faiss_store.index.ntotal} vecteurs")
+
+    os.makedirs(INDEX_DIR, exist_ok=True)
+    faiss_store.save_local(INDEX_DIR)
+    print(f"Index sauvegardé dans {INDEX_DIR}/")
 
 
 if __name__ == "__main__":
