@@ -1,8 +1,8 @@
 """
 Construction de l'index FAISS à partir des événements préprocessés.
 
-Découpe les descriptions en chunks sémantiques, génère un embedding par chunk
-via l'API Mistral (mistral-embed), et construit un index FAISS via LangChain.
+Génère un embedding par événement via l'API Mistral (mistral-embed)
+et construit un index FAISS via LangChain. 1 Document = 1 événement.
 
 Prérequis : avoir exécuté fetch_events.py au préalable.
 Résultat : data/faiss_index/ — index LangChain FAISS (index.faiss + index.pkl)
@@ -12,7 +12,6 @@ import os
 import time
 import pandas as pd
 from dotenv import load_dotenv
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 from langchain_community.vectorstores import FAISS
 from langchain_mistralai import MistralAIEmbeddings
@@ -25,11 +24,9 @@ BATCH_SIZE = 50  # limite conservative pour éviter les erreurs 429
 
 
 def build_documents(df: pd.DataFrame) -> list[Document]:
-    """Découpe les descriptions en chunks et crée les Documents LangChain."""
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+    """Crée un Document LangChain par événement (corpus complet + métadonnées)."""
     documents = []
     for _, row in df.iterrows():
-        chunks = splitter.split_text(row["longdescription_fr"])
         metadata = {
             "uid": row["uid"],
             "title": row["title_fr"],
@@ -39,8 +36,7 @@ def build_documents(df: pd.DataFrame) -> list[Document]:
             "location": f"{row['location_name']}, {row['location_address']}",
             "url": row["canonicalurl"],
         }
-        for chunk in chunks:
-            documents.append(Document(page_content=chunk, metadata=metadata))
+        documents.append(Document(page_content=row["corpus"], metadata=metadata))
     return documents
 
 
