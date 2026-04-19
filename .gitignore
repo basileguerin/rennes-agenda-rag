@@ -8,6 +8,10 @@
 data/raw/
 data/processed/
 
+# Coverage
+.coverage
+htmlcov/
+
 # Python
 __pycache__/
 *.py[cod]
