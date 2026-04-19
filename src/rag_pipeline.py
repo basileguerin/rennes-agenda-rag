@@ -28,6 +28,13 @@ faiss_store = FAISS.load_local(INDEX_DIR, embed_model, allow_dangerous_deseriali
 client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
 
 
+def reload_index() -> int:
+    """Recharge le faiss_store depuis le disque après un rebuild. Retourne le nombre de vecteurs."""
+    global faiss_store
+    faiss_store = FAISS.load_local(INDEX_DIR, embed_model, allow_dangerous_deserialization=True)
+    return faiss_store.index.ntotal
+
+
 def ask(question: str, k: int = 5) -> tuple[str, list[str]]:
     """Pipeline RAG complet : retrieval → augmentation → génération.
     Retourne (réponse générée, liste des corpus récupérés).
