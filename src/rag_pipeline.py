@@ -28,10 +28,13 @@ faiss_store = FAISS.load_local(INDEX_DIR, embed_model, allow_dangerous_deseriali
 client = MistralClient(api_key=os.getenv("MISTRAL_API_KEY"))
 
 
-def ask(question: str, k: int = 5) -> str:
-    """Pipeline RAG complet : retrieval → augmentation → génération."""
+def ask(question: str, k: int = 5) -> tuple[str, list[str]]:
+    """Pipeline RAG complet : retrieval → augmentation → génération.
+    Retourne (réponse générée, liste des corpus récupérés).
+    """
     # 1. Retrieval — similarity_search retourne des Documents avec page_content + metadata
     docs = faiss_store.similarity_search(question, k=k)
+    contexts = [doc.page_content for doc in docs]
     context_parts = []
     for doc in docs:
         m = doc.metadata
@@ -62,4 +65,4 @@ RÉPONSE :"""
         model="mistral-small-latest",
         messages=[ChatMessage(role="user", content=prompt)]
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content, contexts
