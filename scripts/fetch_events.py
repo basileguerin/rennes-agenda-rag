@@ -69,6 +69,8 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=["longdescription_fr", "title_fr"]).copy()
     df["conditions_fr"] = df["conditions_fr"].fillna("")
     df["longdescription_fr"] = df["longdescription_fr"].apply(strip_html)
+    # filtre les descriptions vides après nettoyage HTML (balises seules → chaîne vide)
+    df = df[df["longdescription_fr"].str.strip() != ""]
     df["corpus"] = df.apply(build_corpus, axis=1)
     return df.reset_index(drop=True)
 
