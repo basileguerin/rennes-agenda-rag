@@ -4,12 +4,13 @@
 # Variables d'environnement
 .env
 
-# Index FAISS sérialisé (reconstruit à la demande)
-data/faiss_index/
-
 # Données brutes et traitées (trop lourdes pour git)
 data/raw/
 data/processed/
+
+# Coverage
+.coverage
+htmlcov/
 
 # Python
 __pycache__/
@@ -30,3 +31,7 @@ build/
 
 # Instructions Claude
 CLAUDE.md
+
+# Fichiers / Dossiers
+notes.txt
+/memory
