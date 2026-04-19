@@ -1,0 +1,13 @@
+.venv/
+.env
+.git/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+notebooks/
+data/raw/
+data/processed/
+htmlcov/
+.coverage
+memory/
+notes.txt
