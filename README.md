@@ -16,6 +16,34 @@ Données OpenAgenda (API publique)
 [API REST]               → api/main.py             (FastAPI)
 ```
 
+## Structure du projet
+
+```
+rennes-agenda-rag/
+├── api/
+│   └── main.py              # Endpoints FastAPI (/health, /ask, /rebuild)
+├── scripts/
+│   ├── fetch_events.py      # Collecte et nettoyage des données OpenAgenda
+│   └── build_index.py       # Construction de l'index FAISS
+├── src/
+│   └── rag_pipeline.py      # Pipeline RAG (ask, reload_index)
+├── tests/
+│   ├── api_test.py          # Tests fonctionnels de l'API
+│   └── evaluate_rag.py      # Évaluation RAGAS automatisée
+├── notebooks/               # Exploration et expérimentations
+├── data/
+│   └── faiss_index/         # Index FAISS versionné (index.faiss + index.pkl)
+├── docs/
+│   └── rapport_technique.md # Rapport technique
+├── .github/workflows/
+│   ├── api_test.yml         # CI : tests API à chaque push develop
+│   └── evaluate_rag.yml     # CI : évaluation RAGAS à chaque push develop
+├── .env.example             # Template des variables d'environnement
+├── Dockerfile
+├── requirements.txt
+└── README.md
+```
+
 ## Stack technique
 
 - **LangChain** — orchestration du pipeline RAG
