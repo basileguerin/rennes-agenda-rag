@@ -41,7 +41,6 @@ def ask(question: str, k: int = 5) -> tuple[str, list[str]]:
     """
     # 1. Retrieval — similarity_search retourne des Documents avec page_content + metadata
     docs = faiss_store.similarity_search(question, k=k)
-    contexts = [doc.page_content for doc in docs]
     context_parts = []
     for doc in docs:
         m = doc.metadata
@@ -72,4 +71,5 @@ RÉPONSE :"""
         model="mistral-small-latest",
         messages=[ChatMessage(role="user", content=prompt)]
     )
-    return response.choices[0].message.content, contexts
+    # context_parts = texte complet fourni au modèle (description + métadonnées)
+    return response.choices[0].message.content, context_parts

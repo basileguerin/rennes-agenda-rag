@@ -52,21 +52,18 @@ def strip_html(text: str) -> str:
 
 
 def build_corpus(row: pd.Series) -> str:
-    """Assemble les champs d'un événement en un texte structuré pour l'embedding."""
-    return (
-        f"Titre : {row['title_fr']}\n"
-        f"Description : {row['longdescription_fr']}\n"
-        f"Tarif : {row['conditions_fr']}\n"
-        f"Date de début : {row['firstdate_begin']}\n"
-        f"Date de fin : {row['lastdate_end']}\n"
-        f"Lieu : {row['location_name']}, {row['location_address']}\n"
-        f"Lien : {row['canonicalurl']}"
-    )
+    """Construit le texte sémantique d'un événement pour l'embedding.
+    Seuls le titre et la description sont inclus — les métadonnées (dates, lieu, tarif)
+    sont stockées séparément dans les métadonnées du Document LangChain.
+    """
+    return f"{row['title_fr']}\n{row['longdescription_fr']}"
 
 
 def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     """Nettoie le DataFrame et construit la colonne corpus."""
     df = df.dropna(subset=["longdescription_fr", "title_fr"]).copy()
+    # un même événement peut apparaître dans plusieurs agendas OpenAgenda → déduplique sur uid
+    df = df.drop_duplicates(subset=["uid"])
     df["conditions_fr"] = df["conditions_fr"].fillna("")
     df["longdescription_fr"] = df["longdescription_fr"].apply(strip_html)
     # filtre les descriptions vides après nettoyage HTML (balises seules → chaîne vide)
