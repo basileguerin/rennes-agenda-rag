@@ -109,14 +109,14 @@ python scripts/build_index.py    # génère les embeddings et sauvegarde l'index
 python tests/evaluate_rag.py
 ```
 
-Calcule 4 métriques sur un jeu de 7 questions annotées : `faithfulness`, `answer_relevancy`, `context_precision`, `context_recall`. Le script sort avec le code 1 si un seuil n'est pas atteint.
+Calcule 4 métriques sur un jeu de 30 questions annotées : `faithfulness`, `answer_relevancy`, `context_precision`, `context_recall`. Le script sort avec le code 1 si un seuil n'est pas atteint.
 
-| Métrique | Score obtenu |
-|---|---|
-| faithfulness | 0.91 |
-| answer_relevancy | 0.87 |
-| context_precision | 0.81 |
-| context_recall | 1.00 |
+| Métrique | Score obtenu | Seuil |
+|---|---|---|
+| faithfulness | 0.919 | 0.80 |
+| answer_relevancy | 0.887 | 0.80 |
+| context_precision | 0.788 | 0.75 |
+| context_recall | 1.000 | 0.80 |
 
 ## Tests
 
