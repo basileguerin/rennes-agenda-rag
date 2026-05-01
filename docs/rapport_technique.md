@@ -22,39 +22,28 @@ Démontrer la faisabilité technique d'un assistant culturel RAG : collecter des
 
 ## 2. Architecture du système
 
-**Schéma global**
+**Diagramme de composants**
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Données entrantes                     │
-│         API OpenDataSoft (dataset OpenAgenda)            │
-└─────────────────────┬───────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│              Prétraitement (fetch_events.py)             │
-│  - Filtrage Rennes + fenêtre 12 mois                    │
-│  - Suppression balises HTML (BeautifulSoup)             │
-│  - Construction du corpus textuel                        │
-└─────────────────────┬───────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│           Embedding & Indexation (build_index.py)        │
-│  - 1 Document LangChain par événement                   │
-│  - Embedding : mistral-embed (1024 dimensions)          │
-│  - Index FAISS via LangChain (save_local)               │
-└─────────────────────┬───────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│           Pipeline RAG LangChain (rag_pipeline.py)       │
-│  1. Retrieval  — similarity_search FAISS (k=5)          │
-│  2. Augmentation — prompt contextualisé                 │
-│  3. Génération — mistral-small-latest                   │
-└─────────────────────┬───────────────────────────────────┘
-                      ↓
-┌─────────────────────────────────────────────────────────┐
-│                API REST (FastAPI)                        │
-│         /health   /ask   /rebuild                        │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    DS[("API OpenDataSoft\nDataset OpenAgenda")]
+    FE["&lt;&lt;script&gt;&gt;\nfetch_events.py\n─────────────────\nFiltrage Rennes + 12 mois\nNettoyage HTML\nDéduplication uid\nConstruction corpus"]
+    CSV[("&lt;&lt;fichier&gt;&gt;\nevents_clean.csv")]
+    BI["&lt;&lt;script&gt;&gt;\nbuild_index.py\n─────────────────\n1 Document par événement\nmistral-embed 1024 dim\nFAISS.from_documents"]
+    IDX[("&lt;&lt;index&gt;&gt;\nFAISS\ndata/faiss_index/")]
+    RP["&lt;&lt;module&gt;&gt;\nrag_pipeline.py\n─────────────────\nRetrieval k=5\nAugmentation prompt\nGénération Mistral"]
+    API["&lt;&lt;composant&gt;&gt;\napi/main.py\nFastAPI\n─────────────────\nGET  /health\nPOST /ask\nPOST /rebuild"]
+    USR(["&lt;&lt;acteur&gt;&gt;\nUtilisateur"])
+
+    DS -->|"collecte"| FE
+    FE -->|"sauvegarde"| CSV
+    CSV -->|"chargement"| BI
+    BI -->|"save_local"| IDX
+    IDX -->|"load_local"| RP
+    USR -->|"question JSON"| API
+    API -->|"appel"| RP
+    RP -->|"réponse + contextes"| API
+    API -->|"réponse JSON"| USR
 ```
 
 **Technologies utilisées**
